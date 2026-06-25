@@ -5,6 +5,31 @@ Do not run this file directly.  Rather, run main.py instead.
 """
 import csv
 
+def convert_yes_no_to_bool(answer):
+    """
+    Converts a yes/no string from the data file into a Boolean value.
+    """
+    answer = answer.strip().lower()
+
+    if answer == "yes" or answer == "y":
+        return True
+    else:
+        return False
+
+
+def get_yes_or_no(prompt):
+    """
+    Asks the user a yes/no question and validates the response.
+    """
+    answer = input(prompt)
+    answer = answer.strip().lower()
+
+    while answer != "yes" and answer != "y" and answer != "no" and answer != "n":
+        answer = input("Please enter yes, y, no, or n: ")
+        answer = answer.strip().lower()
+
+    return answer
+
 def bake_cookies(filepath):
     """
     Opens up the CSV data file from the path specified as an argument.
@@ -30,7 +55,10 @@ def bake_cookies(filepath):
                 "id": int(data[0]),
                 "title": data[1],
                 "description": data[2],
-                "price": float(data[3].replace("$", "").strip())
+                "price": float(data[3].replace("$", "").strip()),
+                "sugar_free": convert_yes_no_to_bool(data[4]),
+                "gluten_free": convert_yes_no_to_bool(data[5]),
+                "contains_nuts": convert_yes_no_to_bool(data[6])
             }
 
             cookies.append(cookie)
@@ -50,6 +78,44 @@ def welcome():
     # write your code for this function below this line
     print("Welcome to the Python Cookie Shop!")
     print("We feed each according to their need.")
+    print()
+    print("We'd hate to trigger an allergic reaction in your body. So please answer the following questions:")
+    print()
+
+    nuts_answer = get_yes_or_no("Are you allergic to nuts? ")
+    gluten_answer = get_yes_or_no("Are you allergic to gluten? ")
+    sugar_answer = get_yes_or_no("Do you suffer from diabetes? ")
+
+    customer_needs = {
+        "avoid_nuts": convert_yes_no_to_bool(nuts_answer),
+        "avoid_gluten": convert_yes_no_to_bool(gluten_answer),
+        "avoid_sugar": convert_yes_no_to_bool(sugar_answer)
+    }
+
+    return customer_needs
+
+def get_cookies_for_customer(cookies, customer_needs):
+    """
+    Returns only the cookies that match the customer's dietary needs.
+    """
+    matching_cookies = []
+
+    for cookie in cookies:
+        is_good_cookie = True
+
+        if customer_needs["avoid_nuts"] == True and cookie["contains_nuts"] == True:
+            is_good_cookie = False
+
+        if customer_needs["avoid_gluten"] == True and cookie["gluten_free"] == False:
+            is_good_cookie = False
+
+        if customer_needs["avoid_sugar"] == True and cookie["sugar_free"] == False:
+            is_good_cookie = False
+
+        if is_good_cookie == True:
+            matching_cookies.append(cookie)
+
+    return matching_cookies
 
 
 def display_cookies(cookies):
@@ -72,15 +138,22 @@ def display_cookies(cookies):
     """
     # write your code for this function below this line
     print()
-    print("Here are the cookies we have in the shop for you:")
-    print()
 
-    for cookie in cookies:
-        print("#" + str(cookie["id"]) + " - " + cookie["title"])
-        print(cookie["description"])
-        print("Price: $" + f"{cookie['price']:.2f}")
+    if len(cookies) == 0:
+        print("Sorry, we do not have any cookies that match your dietary needs.")
         print()
 
+    else:
+        print("Great! Here are the cookies that we think you might like:")
+        print()
+
+        for cookie in cookies:
+            print("#" + str(cookie["id"]) + " - " + cookie["title"])
+            print(cookie["description"])
+            print("Price: $" + f"{cookie['price']:.2f}")
+            print()
+
+    
 
 def get_cookie_from_dict(id, cookies):
     """
@@ -118,7 +191,6 @@ def solicit_quantity(id, cookies):
 
     while not quantity.isnumeric():
         quantity = input("Please enter the quantity as an integer: ")
-        quantity = quantity.strip()
 
     quantity = int(quantity)
 
@@ -149,7 +221,7 @@ def solicit_order(cookies):
     order = []
 
     keep_ordering = True
-    
+
 
     while keep_ordering:
         if len(order) == 0:
@@ -239,7 +311,10 @@ def run_shop(cookies):
     :param cookies: A list of all cookies in the shop, where each cookie is represented as a dictionary.
     """
     # write your code for this function below here.
-    welcome()
-    display_cookies(cookies)
-    order = solicit_order(cookies)
-    display_order_total(order, cookies)
+    customer_needs = welcome()
+    matching_cookies = get_cookies_for_customer(cookies, customer_needs)
+    display_cookies(matching_cookies)
+
+    if len(matching_cookies) > 0:
+        order = solicit_order(matching_cookies)
+        display_order_total(order, matching_cookies)
